@@ -7,26 +7,46 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v3
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
+
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip
-        sudo apt-get install -y libffi-dev libssl-dev zlib1g-dev
+        sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip libffi-dev libssl-dev zlib1g-dev
         pip install buildozer cython
-    - name: Accept Android licenses
+
+    - name: Pre-accept Android licenses
       run: |
+        mkdir -p $HOME/.buildozer/android/platform
         mkdir -p $HOME/.android
-        echo "count=0" > $HOME/.android/repositories.cfg
-        yes | sudo /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
-        yes | sudo /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;37.0.0" "platforms;android-33" 2>/dev/null || true
+        touch $HOME/.android/repositories.cfg
+        pip install androidsdk
+        python -c "
+        import os
+        sdk_dir = os.path.expanduser('~/.buildozer/android/platform/android-sdk')
+        os.makedirs(sdk_dir + '/licenses', exist_ok=True)
+        licenses = {
+          'android-sdk-license': '8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e\n24333f8a63b6825ea9c5514f83c2829b004d1fee',
+          'android-sdk-arm-dbt-license': '859f317696f67ef3d7f30a50a5560e7834b43903',
+          'android-sdk-preview-license': '84831b9409646a918e30573bab4c9c91346d8abd',
+          'intel-android-extra-license': 'd975f751698a77b662f1254ddbeed3901e976f5a',
+          'mips-android-sysimage-license': 'e9acab5b5fbb560a72cfaecce8946896ff6aab9d',
+          'google-gdk-license': '33b6a2b64607f11b759f320ef9dff4ae5c47d97a',
+        }
+        for name, content in licenses.items():
+            with open(sdk_dir + '/licenses/' + name, 'w') as f:
+                f.write(content)
+        print('Licenses written!')
+        "
+
     - name: Build APK
       run: |
-        export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
-        buildozer -v android debug
+        buildozer -v android debug 2>&1
+
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:

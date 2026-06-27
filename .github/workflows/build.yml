@@ -8,6 +8,12 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
@@ -17,12 +23,14 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          git zip unzip openjdk-17-jdk python3-pip \
+          git zip unzip python3-pip \
           libffi-dev libssl-dev zlib1g-dev \
           autoconf automake libtool pkg-config cmake
 
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
+      env:
+        ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     - name: Install Android build tools
       run: |
@@ -33,16 +41,11 @@ jobs:
       run: |
         pip install buildozer cython
 
-    - name: Write Android licenses
-      run: |
-        mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
-        cp -r $ANDROID_SDK_ROOT/licenses $HOME/.buildozer/android/platform/android-sdk/ || true
-        echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-
     - name: Link SDK for buildozer
       run: |
         mkdir -p $HOME/.buildozer/android/platform
         ln -sf $ANDROID_SDK_ROOT $HOME/.buildozer/android/platform/android-sdk
+        cp -r $ANDROID_SDK_ROOT/licenses $HOME/.buildozer/android/platform/android-sdk/ 2>/dev/null || true
 
     - name: Build APK
       run: |

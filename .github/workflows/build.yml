@@ -27,27 +27,24 @@ jobs:
           libffi-dev libssl-dev zlib1g-dev \
           autoconf automake libtool pkg-config cmake
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-      env:
-        ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-
-    - name: Install Android build tools
-      run: |
-        sdkmanager "build-tools;33.0.2" "platforms;android-33" "platform-tools"
-        yes | sdkmanager --licenses || true
-
     - name: Install buildozer
       run: |
         pip install buildozer cython
 
-    - name: Link SDK for buildozer
+    - name: Prepare SDK for buildozer
       run: |
         mkdir -p $HOME/.buildozer/android/platform
-        ln -sf $ANDROID_SDK_ROOT $HOME/.buildozer/android/platform/android-sdk
-        cp -r $ANDROID_SDK_ROOT/licenses $HOME/.buildozer/android/platform/android-sdk/ 2>/dev/null || true
+        ln -sf /usr/local/lib/android/sdk $HOME/.buildozer/android/platform/android-sdk
+        mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
+        echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+        echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
+        echo -e "\n859f317696f67ef3d7f30a50a5560e7834b43903" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-arm-dbt-license
+        /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.2" "platforms;android-33" "platform-tools" 2>/dev/null || true
 
     - name: Build APK
+      env:
+        ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        ANDROID_HOME: /usr/local/lib/android/sdk
       run: |
         buildozer -v android debug
 
